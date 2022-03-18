@@ -118,3 +118,5 @@ app.MapGet("test", (ModelBinder<GetOrderByIdRequest> request) => request.Model);
 app.MapEndpointsFromCurrentAssembly();
 
 app.Run();
+
+//https://docs.microsoft.com/en-us/aspnet/core/security/authorization/limitingidentitybyscheme?view=aspnetcore-6.0
