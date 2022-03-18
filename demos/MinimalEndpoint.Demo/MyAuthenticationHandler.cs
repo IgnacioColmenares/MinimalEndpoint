@@ -16,6 +16,30 @@ public class MyAuthenticationHandler : AuthenticationHandler<JwtBearerOptions>
     {
     }
 
+    protected override object? Events { get => base.Events; set => base.Events = value; }
+
+    protected override string ClaimsIssuer => base.ClaimsIssuer;
+
+    public override bool Equals(object? obj)
+    {
+        return base.Equals(obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return base.GetHashCode();
+    }
+
+    public override string? ToString()
+    {
+        return base.ToString();
+    }
+
+    protected override Task<object> CreateEventsAsync()
+    {
+        return base.CreateEventsAsync();
+    }
+
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {        
         
@@ -31,5 +55,30 @@ public class MyAuthenticationHandler : AuthenticationHandler<JwtBearerOptions>
         var ticket = new AuthenticationTicket(principal, Scheme.Name);
         return Task.FromResult(AuthenticateResult.Success(ticket));
 
+    }
+
+    protected override Task HandleChallengeAsync(AuthenticationProperties properties)
+    {
+        return base.HandleChallengeAsync(properties);
+    }
+
+    protected override Task HandleForbiddenAsync(AuthenticationProperties properties)
+    {
+        return base.HandleForbiddenAsync(properties);
+    }
+
+    protected override Task InitializeEventsAsync()
+    {
+        return base.InitializeEventsAsync();
+    }
+
+    protected override Task InitializeHandlerAsync()
+    {
+        return base.InitializeHandlerAsync();
+    }
+
+    protected override string? ResolveTarget(string? scheme)
+    {
+        return base.ResolveTarget(scheme);
     }
 }
