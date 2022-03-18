@@ -1,9 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 
 public class MyAuthenticationHandler : AuthenticationHandler<JwtBearerOptions>
 {
@@ -41,17 +41,27 @@ public class MyAuthenticationHandler : AuthenticationHandler<JwtBearerOptions>
     }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
-    {        
-        
-        var token =( Context.Request.Headers.
-        TryGetValue("Authorization", out var _value)? _value.ToString(): string.Empty)
+    {
+
+        var token = (Context.Request.Headers.
+        TryGetValue("Authorization", out var _value) ? _value.ToString() : string.Empty)
         ?.Split(' ').Last();
-        
-        if (string.IsNullOrEmpty(token)) return Task.FromResult( AuthenticateResult.Fail("Unauthorized"));
- 
-        var tokenHandler = new JwtSecurityTokenHandler();                
-                
+
+        if (string.IsNullOrEmpty(token)) return Task.FromResult(AuthenticateResult.Fail("Unauthorized"));
+
+        /*var tokenHandler = new JwtSecurityTokenHandler();                                
         var principal= tokenHandler.ValidateToken(token, Options.TokenValidationParameters, out SecurityToken validatedToken);        
+        var ticket = new AuthenticationTicket(principal, Scheme.Name);
+        return Task.FromResult(AuthenticateResult.Success(ticket));
+        */
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var jwt = tokenHandler.ReadJwtToken(token);
+        var ci = new List<ClaimsIdentity>();
+        ci.Add(new ClaimsIdentity(jwt.Claims));
+
+        var claimsIdentity = new ClaimsIdentity(jwt.Claims, JwtBearerDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(claimsIdentity);
         var ticket = new AuthenticationTicket(principal, Scheme.Name);
         return Task.FromResult(AuthenticateResult.Success(ticket));
 

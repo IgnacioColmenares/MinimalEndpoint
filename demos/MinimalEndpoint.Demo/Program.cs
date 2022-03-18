@@ -46,32 +46,30 @@ builder.Services.AddAuthentication(o=>{
     builder.Configuration.GetSection("JwtBearerOptions").Bind(o);
 
 })
-.AddJwtBearer(
+.AddScheme<JwtBearerOptions, MyAuthenticationHandler>(
     "MyAuth",
     o =>
-    {   o.SecurityTokenValidators.Add( new MySecurityTokenValidator() );
+    {   
         o.Audience="";
         o.Authority="";
         o.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidateIssuerSigningKey = false,
-        ValidateLifetime = false,
-        ValidateActor=false,
-        IssuerSigningKeyValidator = (SecurityKey securityKey, SecurityToken securityToken, TokenValidationParameters validationParameters)
-         =>
-         {
-             return true;
-         },
-        IssuerValidator = (string issuer, SecurityToken securityToken, TokenValidationParameters validationParameters)
-         =>
-         {
-             return issuer;
-         },
-
-    };
-        
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateIssuerSigningKey = false,
+            ValidateLifetime = false,
+            ValidateActor=false,
+            IssuerSigningKeyValidator = (SecurityKey securityKey, SecurityToken securityToken, TokenValidationParameters validationParameters)
+            =>
+            {
+                return true;
+            },
+            IssuerValidator = (string issuer, SecurityToken securityToken, TokenValidationParameters validationParameters)
+            =>
+            {
+                return issuer;
+            },
+        };        
     }
  )
  .AddPolicyScheme("JWT_OR_MYAUTH", "JWT_OR_MYAUTH", options =>
