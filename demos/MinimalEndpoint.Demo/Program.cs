@@ -30,7 +30,7 @@ builder.Services.AddAuthentication(o=>{
         ValidateAudience = true,
         ValidateIssuerSigningKey = true,
         ValidateLifetime = true,
-        IssuerSigningKeys = keys.Keys,
+        //IssuerSigningKeys = keys.Keys,
         IssuerSigningKeyValidator = (SecurityKey securityKey, SecurityToken securityToken, TokenValidationParameters validationParameters)
          =>
          {
