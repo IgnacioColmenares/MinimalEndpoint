@@ -1,15 +1,15 @@
-using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
-
+using System.Text.Json;
+using System.Text.Json.Serialization;
 namespace JwtSigner;
 
 public class SecurityKeyFileStore
 {
     private readonly DirectoryInfo _filesPath;
 
-    public SecurityKeyFileStore(DirectoryInfo? filesPath= null)
+    public SecurityKeyFileStore(DirectoryInfo? filesPath = null)
     {
-        _filesPath = filesPath 
+        _filesPath = filesPath
         ??
          new DirectoryInfo(
              Path.Combine(
@@ -18,52 +18,86 @@ public class SecurityKeyFileStore
         _filesPath.Create();
     }
 
-    public async Task<RsaSecurityKey> Create( int keySize= 3072)
+    public async Task<JsonWebKey> Create(int keySize = 2048)  //3072
     {
         var securityKey = CryptoService.CreateRsaSecurityKey(keySize);
-        await  Save(securityKey);
-        return securityKey;
+        var jsonWebKey = JsonWebKeyConverter.ConvertFromRSASecurityKey((RsaSecurityKey)securityKey);
+        jsonWebKey.Alg="RS256";
+        jsonWebKey.Use = "sig";        
+        await Save(jsonWebKey);
+        return jsonWebKey;
     }
 
-    public async Task Save( RsaSecurityKey securityKey)
+    public async Task Save(JsonWebKey jsonWebKey)
     {
-        var bytes = securityKey.Rsa.ExportRSAPrivateKey();
-        var base64 =
-@"-----BEGIN RSA PRIVATE KEY-----
-" + Convert.ToBase64String(bytes, Base64FormattingOptions.InsertLineBreaks) + @"
------END RSA PRIVATE KEY-----";
+
+        var fullFilename = GetFullFileName(jsonWebKey.KeyId);
+        await Save(jsonWebKey, fullFilename);        
         
-        var fullFilename =  GetFullFileName(securityKey.KeyId);
-        await System.IO.File.WriteAllTextAsync(fullFilename, base64);        
+        string publicKeyFileFullFileName = GetPublicKeyFileFullFileName(jsonWebKey.KeyId);
+        await SavePublicKey(jsonWebKey, publicKeyFileFullFileName);       
+
     }
 
-    public async Task<RsaSecurityKey> Get( string keyId)
-    {                
-        var fullFileName = GetFullFileName(keyId);        
+    private async Task SavePublicKey( JsonWebKey jsonWebKey, string publicKeyfullFilename)
+    {
+        var publickey = new PublicJsonWebKey
+        {
+            kid = jsonWebKey.KeyId,
+            kty = jsonWebKey.Kty,
+            n = jsonWebKey.N,
+            use = jsonWebKey.Use,
+            alg = jsonWebKey.Alg
+        };
+
+        var publicJwkeyAsString = JsonSerializer.Serialize(publickey, typeof(PublicJsonWebKey), new JsonSerializerOptions()
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+            WriteIndented = true,
+        });
+
+        await System.IO.File.WriteAllTextAsync(publicKeyfullFilename, publicJwkeyAsString);   
+    }
+    private async Task Save( JsonWebKey jsonWebKey, string fullFilename)
+    {
+        var jwkeyAsString = JsonSerializer.Serialize(jsonWebKey, typeof(JsonWebKey), new JsonSerializerOptions()
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+            WriteIndented = true,
+        });
+
+        await System.IO.File.WriteAllTextAsync(fullFilename, jwkeyAsString);
+    }
+
+    private string GetPublicKeyFileFullFileName(string keyId)
+    =>
+    Path.Combine(_filesPath.FullName, keyId) + "-public.json";
+
+    public async Task<JsonWebKey?> Get(string keyId)
+    {
+        var fullFileName = GetFullFileName(keyId);
         return await Get(keyId, fullFileName);
     }
 
-    public async Task<RsaSecurityKey?> GetCurrent()
+    public async Task<JsonWebKey?> GetCurrent()
     {
-        var fileInfo = _filesPath.GetFiles().OrderBy(f=>f.CreationTime).FirstOrDefault();
-        if( fileInfo==default) return default;
-        return await  Get(fileInfo.Name,fileInfo.FullName);
+        var fileInfo = _filesPath.GetFiles().OrderBy(f => f.CreationTime).FirstOrDefault();
+        if (fileInfo == default) return default;
+        return await Get(fileInfo.Name, fileInfo.FullName);
     }
 
-    public async Task<bool> HasCurrent()=> await Task.FromResult( _filesPath.GetFiles().Any());
+    public async Task<bool> HasCurrent() => await Task.FromResult(_filesPath.GetFiles().Any());
 
 
-    private string GetFullFileName(string keyId)=>  Path.Combine(_filesPath.FullName, keyId);
+    private string GetFullFileName(string keyId) => Path.Combine(_filesPath.FullName, keyId) + "-private.json";
 
-    private async Task<RsaSecurityKey> Get(string keyId, string fullFileName)
+    private async Task<JsonWebKey?> Get(string keyId, string fullFileName)
     {
-        var securityKey = new RsaSecurityKey(RSA.Create())
-        {
-            KeyId = keyId
-        };
-        var base64 = await System.IO.File.ReadAllTextAsync(fullFileName);
-        securityKey.Rsa.ImportFromPem(base64);        
-        return securityKey;
+
+        var text = await System.IO.File.ReadAllTextAsync(fullFileName);
+        var jwkey = JsonSerializer.Deserialize<JsonWebKey>(text);
+        return await Task.FromResult(jwkey);
+
     }
 
 
