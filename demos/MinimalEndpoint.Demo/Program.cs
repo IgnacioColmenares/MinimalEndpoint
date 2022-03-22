@@ -92,7 +92,18 @@ builder.Services.AddAuthentication(o=>{
         return JwtBearerDefaults.AuthenticationScheme;
     };
 });
- ;
+
+builder.Services.AddCors(
+                options => options.AddPolicy(
+                    "default",
+                    builder => builder
+                        .WithOrigins( "https://jwt.io"  )
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials()
+                )
+            );
+
 
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -117,6 +128,7 @@ app.MapGet("test", (ModelBinder<GetOrderByIdRequest> request) => request.Model);
 
 app.MapEndpointsFromCurrentAssembly();
 
+app.UseCors("default");
 app.Run();
 
 //https://docs.microsoft.com/en-us/aspnet/core/security/authorization/limitingidentitybyscheme?view=aspnetcore-6.0
